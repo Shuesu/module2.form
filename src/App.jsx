@@ -1,79 +1,65 @@
-import { useEffect, useRef, useState } from 'react';
-import styles from './App.module.css';
+import { useEffect, useRef } from 'react';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { registrationFormSchema } from './registration-form-schema';
 import { Field } from './components';
-import { emailValidator, passwordMinValidator, passwordSymbolsValidator } from './validators'
+import styles from './app.module.css';
 
 export const App = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [passcheck, setPasscheck] = useState('');
-
-  const [isEmailValid, setIsEmailValid] = useState(false);
-  const [isPasswordValid, setIsPasswordValid] = useState(false);
-  const [isPasscheckValid, setIsPasscheckValid] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    trigger,
+    formState: { touchedFields, isValid, errors },
+  } = useForm({
+    defaultValues: {
+      email: '',
+      password: '',
+      passcheck: '',
+    },
+    resolver: yupResolver(registrationFormSchema),
+    mode: 'onTouched',
+  });
 
   const submitButtonRef = useRef(null);
 
-  const onSubmit = (event) => {
-    event.preventDefault();
-    console.log({ email, password })
+  const onSubmit = ({ email, password }) => {
+    console.log({ email, password });
   };
 
-  const isFormValid = isEmailValid && isPasswordValid && isPasscheckValid;
-
   useEffect(() => {
-    if (isFormValid) {
+    if (isValid) {
       submitButtonRef.current.focus();
     }
-  }, [isFormValid])
+  }, [isValid]);
 
   return (
     <div className={styles.app}>
-      <form className={styles.form} onSubmit={onSubmit}>
+      <form onSubmit={handleSubmit(onSubmit)}>
         <Field
-          className={styles.field}
           type="text"
-          name="email"
           placeholder="Почта..."
-          value={email}
-          setValue={setEmail}
-          setIsValid={setIsEmailValid}
-          validators={[emailValidator]}
+          error={errors.email?.message}
+          {...register('email')}
         />
         <Field
-          className={styles.field}
           type="password"
-          name="password"
           placeholder="Пароль..."
-          value={password}
-          setValue={setPassword}
-          setIsValid={setIsPasswordValid}
-          validators={[passwordMinValidator, passwordSymbolsValidator]}
+          error={errors.password?.message}
+          {...register('password', {
+            onChange: () => touchedFields.passcheck && trigger('passcheck'),
+          })}
         />
         <Field
-          className={styles.field}
           type="password"
-          name="passcheck"
           placeholder="Повтор пароля..."
-          value={passcheck}
-          setIsValid={setIsPasscheckValid}
-          setValue={setPasscheck}
-          validators={[
-            (value) => (value === password ? null : 'Пароли не совпадают')
-          ]}
-          dependencies={[{ password }]}
-          forceValidation={(value) =>
-            value.length > 0
-          }
+          error={errors.passcheck?.message}
+          {...register('passcheck')}
         />
-        <button
-          type="submit"
-          disabled={!isFormValid}
-          ref={submitButtonRef}
-        >
+        <button type="submit" disabled={!isValid} ref={submitButtonRef}>
           Зарегистрироваться
         </button>
       </form>
-    </div >
+    </div>
   );
 };
